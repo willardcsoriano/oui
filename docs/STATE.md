@@ -14,16 +14,16 @@ This file is the single source of truth for where `wi` is right now — what has
   - [Phase 2 — Multi-Provider Validation](#phase-2-multi-provider-validation)
   - [Phase 3 — Parallelism by Default](#phase-3-parallelism-by-default)
   - [Phase 4 — Hooks System](#phase-4-hooks-system)
+  - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
 - [What Is In Flight](#what-is-in-flight)
 - [What Is Next](#what-is-next)
-  - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
   - [Phase 6 — Go Port](#phase-6-go-port)
 - [Key Decisions Made](#key-decisions-made)
 - [Blockers / Watch Items](#blockers-watch-items)
 
 ## Current Status
 
-**Active phase:** Phase 4 complete, Phase 5 not started
+**Active phase:** Phase 5 complete, Phase 6 not started
 
 **Branch/PR state:**
 
@@ -34,8 +34,9 @@ This file is the single source of truth for where `wi` is right now — what has
 | `feat/phase-2-multi-provider` | #3 | Merged to `main` |
 | `feat/phase-3-parallelism` | #4 | Merged to `main` |
 | `feat/phase-4-hooks` | #5 | Merged to `main` |
+| `feat/phase-5-commands` | #6 | Merged to `main` |
 
-**Immediate next action:** Start Phase 5 (built-in command suite).
+**Immediate next action:** Start Phase 6 (Go port).
 
 ---
 
@@ -72,6 +73,19 @@ This file is the single source of truth for where `wi` is right now — what has
 - `cli.py`: extracted `_async_oneshot()`; lifecycle hooks fire via `asyncio.to_thread()` at session start/end in both REPL and one-shot paths, with `finally` guaranteeing session.end
 - `tests/hooks/test_loader.py` + `tests/hooks/test_runner.py`: 21 tests covering all loader branches and runner behaviour (blocking, matching, env vars, lifecycle ordering)
 
+### Phase 5 — Built-in Command Suite
+- `commands/_utils.py`: shared async subprocess helper (`run()`), `git_default_branch()`, `git_current_branch()`, `check_git()`
+- `commands/registry.py`: command dispatcher — routes `/`-prefixed REPL input to handlers; returns `False` to exit
+- `commands/gitignore.py`: detects stack from files present (Python, Node, Go, Rust, Java, Ruby, .NET), merges entries idempotently into `.gitignore`
+- `commands/wrap.py`: writes `HANDOFF.md` with branch, recent commits, diff stat, working tree status, and template sections for decisions/next-steps/blockers
+- `commands/unwrap.py`: reads and renders `HANDOFF.md` via Rich Markdown
+- `commands/bye.py`: calls `/wrap` then returns `False` to exit REPL
+- `commands/privacy.py`: scans git-tracked files for AI attribution patterns (Co-Authored-By, "Generated with", etc.), reports with file and line number
+- `commands/pr.py`: pushes current branch, creates PR via `gh pr create --fill`
+- `commands/merge.py`: lists open PRs, enables auto-merge with squash on each (skips drafts)
+- `commands/commit.py`: groups unstaged files by concern key (directory heuristic), stages and commits each group with a generated conventional message
+- `cli.py`: REPL now routes `/`-prefixed input to `cmd_registry.dispatch()`; `exit`/`quit` still work as bare aliases
+
 ---
 
 ## What Is In Flight
@@ -81,9 +95,6 @@ Nothing — all completed phases are on `main`.
 ---
 
 ## What Is Next
-
-### Phase 5 — Built-in Command Suite
-In order: `/gitignore`, `/wrap`, `/unwrap`, `/bye`, `/privacy`, `/pr`, `/merge`, `/commit`.
 
 ### Phase 6 — Go Port
 Translate validated Python design to Go for single-binary distribution.
