@@ -18,3 +18,9 @@ wi = "wi.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wi"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

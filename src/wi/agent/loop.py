@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import litellm
 from rich.console import Console
 from rich.live import Live
 from rich.markup import escape
@@ -17,7 +18,20 @@ console = Console()
 def run(prompt: str, model: str | None = None) -> None:
     messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
     while True:
-        assistant_msg, tool_calls = _stream_turn(messages, model)
+        try:
+            assistant_msg, tool_calls = _stream_turn(messages, model)
+        except litellm.AuthenticationError:
+            console.print(
+                "[bold red]authentication error[/bold red] — "
+                "check your API key env var (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY)"
+            )
+            return
+        except litellm.BadRequestError as e:
+            console.print(f"[bold red]bad request:[/bold red] {escape(str(e))}")
+            return
+        except ValueError as e:
+            console.print(f"[bold red]config error:[/bold red] {escape(str(e))}")
+            return
         messages.append(assistant_msg)
         if not tool_calls:
             break
