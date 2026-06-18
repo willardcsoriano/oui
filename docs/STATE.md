@@ -12,9 +12,9 @@ This file is the single source of truth for where `wi` is right now — what has
   - [Phase 0 — Project Scaffold (merged via PR #1)](#phase-0-project-scaffold-merged-via-pr-1)
   - [Phase 1 — Core Agent Loop (merged via PR #2)](#phase-1-core-agent-loop-merged-via-pr-2)
   - [Phase 2 — Multi-Provider Validation](#phase-2-multi-provider-validation)
+  - [Phase 3 — Parallelism by Default](#phase-3-parallelism-by-default)
 - [What Is In Flight](#what-is-in-flight)
 - [What Is Next](#what-is-next)
-  - [Phase 3 — Parallelism by Default](#phase-3-parallelism-by-default)
   - [Phase 4 — Hooks System](#phase-4-hooks-system)
   - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
   - [Phase 6 — Go Port](#phase-6-go-port)
@@ -23,7 +23,7 @@ This file is the single source of truth for where `wi` is right now — what has
 
 ## Current Status
 
-**Active phase:** Phase 2 complete, Phase 3 not started
+**Active phase:** Phase 3 complete, Phase 4 not started
 
 **Branch/PR state:**
 
@@ -31,8 +31,10 @@ This file is the single source of truth for where `wi` is right now — what has
 |---|---|---|
 | `feat/phase-0-scaffold` | #1 | Merged to `main` |
 | `feat/phase-1-agent-loop` | #2 | Merged to `main` |
+| `feat/phase-2-multi-provider` | #3 | Merged to `main` |
+| `feat/phase-3-parallelism` | #4 | Merged to `main` |
 
-**Immediate next action:** Start Phase 3 (asyncio fan-out for parallel tool calls).
+**Immediate next action:** Start Phase 4 (hooks system).
 
 ---
 
@@ -57,6 +59,11 @@ This file is the single source of truth for where `wi` is right now — what has
 - `pyproject.toml`: added `pytest>=8.0` dev dependency group
 - `tests/providers/test_client.py`: 8 unit tests covering all `resolve_model()` branches — no API calls required
 
+### Phase 3 — Parallelism by Default
+- `agent/loop.py`: `run()` and `_execute()` are now async; tool calls within a turn fan out via `asyncio.gather()` — independent tools run concurrently in a thread pool via `asyncio.to_thread()`
+- `cli.py`: entry point updated to `asyncio.run()`; REPL inner loop is now `async def _async_repl()` so one event loop lives for the whole session
+- `tests/agent/test_loop.py`: 5 async unit tests covering `_execute` — normal result, malformed args, denied command, concurrent ordering, unexpected exception
+
 ---
 
 ## What Is In Flight
@@ -66,9 +73,6 @@ Nothing — all completed phases are on `main`.
 ---
 
 ## What Is Next
-
-### Phase 3 — Parallelism by Default
-asyncio fan-out for independent tool calls in a single turn. Sub-agent spawning for independent subtasks.
 
 ### Phase 4 — Hooks System
 `PreToolUse`, `PostToolUse`, and lifecycle hooks (`session.start`, `session.end`) via `~/.wi/hooks.toml`.
