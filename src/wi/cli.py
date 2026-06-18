@@ -7,6 +7,7 @@ from rich.console import Console
 
 from wi import __version__
 from wi.agent import loop
+from wi.commands import registry as cmd_registry
 from wi.hooks import loader as hooks_loader
 from wi.hooks import runner as hooks_runner
 
@@ -49,9 +50,14 @@ async def _async_repl(model: str | None) -> None:
                 break
             if not text:
                 continue
-            if text in {"/bye", "exit", "quit"}:
+            if text in {"exit", "quit"}:
                 console.print("[dim]bye[/dim]")
                 break
+            if text.startswith("/"):
+                should_continue = await cmd_registry.dispatch(text, console)
+                if not should_continue:
+                    break
+                continue
             await loop.run(text, model)
     finally:
         await asyncio.to_thread(hooks_runner.run_lifecycle, hooks_config.session_end)
