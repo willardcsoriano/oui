@@ -13,9 +13,9 @@ This file is the single source of truth for where `wi` is right now — what has
   - [Phase 1 — Core Agent Loop (merged via PR #2)](#phase-1-core-agent-loop-merged-via-pr-2)
   - [Phase 2 — Multi-Provider Validation](#phase-2-multi-provider-validation)
   - [Phase 3 — Parallelism by Default](#phase-3-parallelism-by-default)
+  - [Phase 4 — Hooks System](#phase-4-hooks-system)
 - [What Is In Flight](#what-is-in-flight)
 - [What Is Next](#what-is-next)
-  - [Phase 4 — Hooks System](#phase-4-hooks-system)
   - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
   - [Phase 6 — Go Port](#phase-6-go-port)
 - [Key Decisions Made](#key-decisions-made)
@@ -23,7 +23,7 @@ This file is the single source of truth for where `wi` is right now — what has
 
 ## Current Status
 
-**Active phase:** Phase 3 complete, Phase 4 not started
+**Active phase:** Phase 4 complete, Phase 5 not started
 
 **Branch/PR state:**
 
@@ -33,8 +33,9 @@ This file is the single source of truth for where `wi` is right now — what has
 | `feat/phase-1-agent-loop` | #2 | Merged to `main` |
 | `feat/phase-2-multi-provider` | #3 | Merged to `main` |
 | `feat/phase-3-parallelism` | #4 | Merged to `main` |
+| `feat/phase-4-hooks` | #5 | Merged to `main` |
 
-**Immediate next action:** Start Phase 4 (hooks system).
+**Immediate next action:** Start Phase 5 (built-in command suite).
 
 ---
 
@@ -64,6 +65,13 @@ This file is the single source of truth for where `wi` is right now — what has
 - `cli.py`: entry point updated to `asyncio.run()`; REPL inner loop is now `async def _async_repl()` so one event loop lives for the whole session
 - `tests/agent/test_loop.py`: 5 async unit tests covering `_execute` — normal result, malformed args, denied command, concurrent ordering, unexpected exception
 
+### Phase 4 — Hooks System
+- `hooks/loader.py`: `HooksConfig` dataclass + `load(path)` — reads `~/.wi/hooks.toml`; supports `[[pre_tool_use]]`, `[[post_tool_use]]` arrays and `[session]` start/end as string or list; returns empty config if file absent
+- `hooks/runner.py`: `run_pre_tool_use` (blocks on non-zero exit, exposes `WI_TOOL_NAME`/`WI_TOOL_ARGS` env), `run_post_tool_use` (silent on failure, adds `WI_TOOL_RESULT`), `run_lifecycle` (sequential commands)
+- `agent/loop.py`: loads config once per `run()` call; wraps hook calls in `asyncio.to_thread()`; PreToolUse blocks before tool dispatch, PostToolUse fires after result
+- `cli.py`: extracted `_async_oneshot()`; lifecycle hooks fire via `asyncio.to_thread()` at session start/end in both REPL and one-shot paths, with `finally` guaranteeing session.end
+- `tests/hooks/test_loader.py` + `tests/hooks/test_runner.py`: 21 tests covering all loader branches and runner behaviour (blocking, matching, env vars, lifecycle ordering)
+
 ---
 
 ## What Is In Flight
@@ -73,9 +81,6 @@ Nothing — all completed phases are on `main`.
 ---
 
 ## What Is Next
-
-### Phase 4 — Hooks System
-`PreToolUse`, `PostToolUse`, and lifecycle hooks (`session.start`, `session.end`) via `~/.wi/hooks.toml`.
 
 ### Phase 5 — Built-in Command Suite
 In order: `/gitignore`, `/wrap`, `/unwrap`, `/bye`, `/privacy`, `/pr`, `/merge`, `/commit`.
