@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os
+import asyncio
 
 import typer
 from rich.console import Console
@@ -22,12 +22,12 @@ def run(
         console.print(f"wi {__version__}")
         raise typer.Exit()
     if prompt is None:
-        _repl(model)
+        asyncio.run(_async_repl(model))
     else:
-        loop.run(prompt, model)
+        asyncio.run(loop.run(prompt, model))
 
 
-def _repl(model: str | None) -> None:
+async def _async_repl(model: str | None) -> None:
     console.print(f"[bold]wi[/bold] [dim]{__version__}[/dim]  [dim]ctrl-c or /bye to exit[/dim]")
     while True:
         try:
@@ -40,4 +40,4 @@ def _repl(model: str | None) -> None:
         if text in {"/bye", "exit", "quit"}:
             console.print("[dim]bye[/dim]")
             break
-        loop.run(text, model)
+        await loop.run(text, model)

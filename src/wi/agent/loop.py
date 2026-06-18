@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -15,7 +16,7 @@ from wi.tools.executor import DeniedCommandError, execute_tool
 console = Console()
 
 
-def run(prompt: str, model: str | None = None) -> None:
+async def run(prompt: str, model: str | None = None) -> None:
     messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
     while True:
         try:
@@ -35,8 +36,8 @@ def run(prompt: str, model: str | None = None) -> None:
         messages.append(assistant_msg)
         if not tool_calls:
             break
-        for call in tool_calls:
-            result = _execute(call)
+        results = await asyncio.gather(*[_execute(call) for call in tool_calls])
+        for call, result in zip(tool_calls, results):
             messages.append({
                 "role": "tool",
                 "tool_call_id": call["id"],
@@ -91,7 +92,7 @@ def _stream_turn(
     return assistant_msg, tool_calls
 
 
-def _execute(call: dict[str, Any]) -> str:
+async def _execute(call: dict[str, Any]) -> str:
     name = call["function"]["name"]
     try:
         args = json.loads(call["function"]["arguments"])
@@ -101,7 +102,7 @@ def _execute(call: dict[str, Any]) -> str:
     console.print(f"[bold yellow]⚙[/bold yellow] [yellow]{name}[/yellow]([dim]{escape(call['function']['arguments'])}[/dim])")
 
     try:
-        result = execute_tool(name, args)
+        result = await asyncio.to_thread(execute_tool, name, args)
     except DeniedCommandError as e:
         result = f"error: {e}"
         console.print(f"[bold red]✗[/bold red] [red]blocked:[/red] {escape(str(e))}")
