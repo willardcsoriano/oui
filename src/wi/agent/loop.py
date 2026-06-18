@@ -10,6 +10,9 @@ from rich.live import Live
 from rich.markup import escape
 from rich.text import Text
 
+from wi.hooks import loader as hooks_loader
+from wi.hooks import runner as hooks_runner
+from wi.hooks.loader import HooksConfig
 from wi.providers.client import stream_completion
 from wi.tools.executor import DeniedCommandError, execute_tool
 
@@ -17,6 +20,7 @@ console = Console()
 
 
 async def run(prompt: str, model: str | None = None) -> None:
+    hooks_config = hooks_loader.load()
     messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
     while True:
         try:
@@ -36,7 +40,7 @@ async def run(prompt: str, model: str | None = None) -> None:
         messages.append(assistant_msg)
         if not tool_calls:
             break
-        results = await asyncio.gather(*[_execute(call) for call in tool_calls])
+        results = await asyncio.gather(*[_execute(call, hooks_config) for call in tool_calls])
         for call, result in zip(tool_calls, results):
             messages.append({
                 "role": "tool",
@@ -92,12 +96,17 @@ def _stream_turn(
     return assistant_msg, tool_calls
 
 
-async def _execute(call: dict[str, Any]) -> str:
+async def _execute(call: dict[str, Any], hooks_config: HooksConfig) -> str:
     name = call["function"]["name"]
     try:
         args = json.loads(call["function"]["arguments"])
     except json.JSONDecodeError:
         return "error: malformed tool arguments"
+
+    blocked = await asyncio.to_thread(hooks_runner.run_pre_tool_use, hooks_config, name, args)
+    if blocked:
+        console.print(f"[bold red]✗[/bold red] [red]hook blocked[/red] [yellow]{name}[/yellow]: {escape(blocked)}")
+        return f"error: {blocked}"
 
     console.print(f"[bold yellow]⚙[/bold yellow] [yellow]{name}[/yellow]([dim]{escape(call['function']['arguments'])}[/dim])")
 
@@ -109,6 +118,8 @@ async def _execute(call: dict[str, Any]) -> str:
         return result
     except Exception as e:
         result = f"error: {e}"
+
+    await asyncio.to_thread(hooks_runner.run_post_tool_use, hooks_config, name, args, result)
 
     preview = result if len(result) <= 120 else result[:120] + "…"
     console.print(f"[dim]  → {escape(preview)}[/dim]")
