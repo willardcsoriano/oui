@@ -15,15 +15,15 @@ This file is the single source of truth for where `wi` is right now — what has
   - [Phase 3 — Parallelism by Default](#phase-3-parallelism-by-default)
   - [Phase 4 — Hooks System](#phase-4-hooks-system)
   - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
+  - [Phase 6 — Go Port](#phase-6-go-port)
 - [What Is In Flight](#what-is-in-flight)
 - [What Is Next](#what-is-next)
-  - [Phase 6 — Go Port](#phase-6-go-port)
 - [Key Decisions Made](#key-decisions-made)
 - [Blockers / Watch Items](#blockers-watch-items)
 
 ## Current Status
 
-**Active phase:** Phase 5 complete, Phase 6 not started
+**Active phase:** Phase 6 implemented — pending PR/merge
 
 **Branch/PR state:**
 
@@ -35,8 +35,9 @@ This file is the single source of truth for where `wi` is right now — what has
 | `feat/phase-3-parallelism` | #4 | Merged to `main` |
 | `feat/phase-4-hooks` | #5 | Merged to `main` |
 | `feat/phase-5-commands` | #6 | Merged to `main` |
+| `feat/phase-6-go-port` | — | Local only, unpushed — ready to PR |
 
-**Immediate next action:** Start Phase 6 (Go port).
+**Immediate next action:** `/pr` then `/merge`.
 
 ---
 
@@ -88,16 +89,33 @@ This file is the single source of truth for where `wi` is right now — what has
 
 ---
 
+### Phase 6 — Go Port
+- `go.mod` at repo root: module `github.com/willardcsoriano/wi`, Go 1.24, deps cobra/bubbletea/lipgloss/bubbles/toml
+- `internal/providers/types.go`: shared `Message`, `ToolCall`, `ToolSchema`, `TurnResult`, `Provider` interface
+- `internal/providers/anthropic.go`: direct Anthropic SSE streaming client — translates internal message format (batching tool-result messages into Anthropic's grouped user turn), parses SSE events by type, accumulates text + tool calls
+- `internal/providers/openai.go`: OpenAI-compatible SSE streaming client — covers OpenAI, Gemini, DeepSeek, Ollama via base URL injection
+- `internal/providers/client.go`: `ResolveModel()` mirrors Python logic (WI_PROVIDER + WI_MODEL composition); `New()` factory dispatching to provider implementations
+- `internal/tools/executor.go`: `read_file`, `write_file`, `bash` tools with the same deny list as the Python port
+- `internal/hooks/loader.go`: TOML loader via BurntSushi/toml — same `~/.wi/hooks.toml` schema, string-or-slice lifecycle commands
+- `internal/hooks/runner.go`: `RunPreToolUse`, `RunPostToolUse`, `RunLifecycle` — subprocess hook execution with `WI_TOOL_*` env vars
+- `internal/agent/loop.go`: streaming turn loop with goroutine-based parallel tool execution (`sync.WaitGroup`)
+- `internal/commands/*.go`: all 8 commands — `/gitignore`, `/wrap`, `/unwrap`, `/bye`, `/privacy`, `/pr`, `/merge`, `/commit`
+- `internal/tui/repl.go`: bubbletea REPL — textinput prompt, tea.Cmd goroutines for agent/command dispatch, `progWriter` buffers to line boundaries for `prog.Println`
+- `cmd/wi/main.go`: cobra CLI — `wi [prompt]` (one-shot vs REPL), `--model` flag, lifecycle hooks
+- `.github/workflows/release.yml`: matrix build for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 — publishes to GitHub release on `v*` tag
+- All targets cross-compile clean (~7–8 MB each, CGO_ENABLED=0)
+
+---
+
 ## What Is In Flight
 
-Nothing — all completed phases are on `main`.
+Phase 6 on `feat/phase-6-go-port` — built, compiled, cross-compiled clean. Awaiting PR and merge.
 
 ---
 
 ## What Is Next
 
-### Phase 6 — Go Port
-Translate validated Python design to Go for single-binary distribution.
+Nothing — all planned phases implemented. Future work: live provider smoke tests, `/version` in REPL, shell completions.
 
 ---
 
@@ -111,9 +129,11 @@ Translate validated Python design to Go for single-binary distribution.
 | Commands are direct handlers, not agentic tools | More predictable, easier to iterate; can make agentic later once loop is proven |
 | Hard deny list in `executor.py`, not user-configurable | Safety floor must be unconditional; users can extend it but not shrink it |
 | Squash merge strategy | One commit per concern on `main`; keeps history readable |
+| Go port: direct HTTP + SSE, no LiteLLM | LiteLLM has no Go SDK; direct Anthropic and OpenAI-compatible clients cover all providers via base URL injection |
+| bubbletea `sharedProg` pattern | `*tea.Program` must be set before `Run()` starts the event loop; storing it in a shared pointer avoids circular initialization |
 
 ---
 
 ## Blockers / Watch Items
 
-- No live provider smoke tests — `resolve_model()` is unit-tested but end-to-end validation against OpenAI/Gemini/DeepSeek/Ollama requires API keys and is manual for now
+- No live provider smoke tests in either Python or Go — end-to-end validation requires API keys and is manual for now
