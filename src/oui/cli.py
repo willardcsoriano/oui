@@ -6,10 +6,10 @@ import typer
 from rich.console import Console
 
 from wi import __version__
-from wi.agent import loop
-from wi.commands import registry as cmd_registry
-from wi.hooks import loader as hooks_loader
-from wi.hooks import runner as hooks_runner
+from oui.agent import loop
+from oui.commands import registry as cmd_registry
+from oui.hooks import loader as hooks_loader
+from oui.hooks import runner as hooks_runner
 
 app = typer.Typer(add_completion=False, no_args_is_help=False)
 console = Console()

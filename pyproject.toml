@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "wi"
+name = "oui"
 version = "0.1.0"
 description = "Provider-agnostic agentic coding shell"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-wi = "wi.cli:app"
+oui = "wi.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wi"]

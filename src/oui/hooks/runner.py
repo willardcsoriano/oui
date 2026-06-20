@@ -6,7 +6,7 @@ import os
 import subprocess
 from typing import Any
 
-from wi.hooks.loader import HooksConfig
+from oui.hooks.loader import HooksConfig
 
 
 def run_pre_tool_use(

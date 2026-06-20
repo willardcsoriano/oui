@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/willardcsoriano/wi/internal/hooks"
-	"github.com/willardcsoriano/wi/internal/providers"
-	"github.com/willardcsoriano/wi/internal/tools"
+	"github.com/willardcsoriano/oui/internal/hooks"
+	"github.com/willardcsoriano/oui/internal/providers"
+	"github.com/willardcsoriano/oui/internal/tools"
 )
 
 // Run executes the agentic loop for a single user prompt.

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from rich.console import Console
 
-from wi.commands._utils import git_current_branch, run
+from oui.commands._utils import git_current_branch, run
 
 HANDOFF_PATH = Path("HANDOFF.md")
 

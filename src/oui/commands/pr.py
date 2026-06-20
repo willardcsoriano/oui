@@ -3,7 +3,7 @@ from __future__ import annotations
 from rich.console import Console
 from rich.markup import escape
 
-from wi.commands._utils import git_current_branch, git_default_branch, run
+from oui.commands._utils import git_current_branch, git_default_branch, run
 
 
 async def handle(args: str, console: Console) -> bool:

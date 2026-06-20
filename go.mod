@@ -1,4 +1,4 @@
-module github.com/willardcsoriano/wi
+module github.com/willardcsoriano/oui
 
 go 1.24
 

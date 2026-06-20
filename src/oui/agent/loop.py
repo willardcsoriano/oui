@@ -10,11 +10,11 @@ from rich.live import Live
 from rich.markup import escape
 from rich.text import Text
 
-from wi.hooks import loader as hooks_loader
-from wi.hooks import runner as hooks_runner
-from wi.hooks.loader import HooksConfig
-from wi.providers.client import stream_completion
-from wi.tools.executor import DeniedCommandError, execute_tool
+from oui.hooks import loader as hooks_loader
+from oui.hooks import runner as hooks_runner
+from oui.hooks.loader import HooksConfig
+from oui.providers.client import stream_completion
+from oui.tools.executor import DeniedCommandError, execute_tool
 
 console = Console()
 

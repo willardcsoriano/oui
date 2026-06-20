@@ -6,7 +6,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.markup import escape
 
-from wi.commands._utils import run
+from oui.commands._utils import run
 
 _PATTERNS: list[re.Pattern] = [
     re.compile(r"Co-Authored-By:.*[Cc]laude", re.IGNORECASE),

@@ -9,10 +9,10 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/willardcsoriano/wi/internal/agent"
-	"github.com/willardcsoriano/wi/internal/commands"
-	"github.com/willardcsoriano/wi/internal/hooks"
-	"github.com/willardcsoriano/wi/internal/session"
+	"github.com/willardcsoriano/oui/internal/agent"
+	"github.com/willardcsoriano/oui/internal/commands"
+	"github.com/willardcsoriano/oui/internal/hooks"
+	"github.com/willardcsoriano/oui/internal/session"
 )
 
 // sharedProg holds the *tea.Program reference so tea.Cmd goroutines

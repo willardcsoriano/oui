@@ -4,4 +4,4 @@ __pycache__/
 dist/
 *.egg-info/
 .env
-.wi/config.toml
+.oui/config.toml

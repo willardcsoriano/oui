@@ -8,7 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-var DefaultConfigPath = filepath.Join(os.Getenv("HOME"), ".wi", "hooks.toml")
+var DefaultConfigPath = filepath.Join(os.Getenv("HOME"), ".oui", "hooks.toml")
 
 type HookEntry struct {
 	Command string `toml:"command"`
