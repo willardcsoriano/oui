@@ -12,7 +12,7 @@ import (
 	"github.com/willardcsoriano/wi/internal/agent"
 	"github.com/willardcsoriano/wi/internal/commands"
 	"github.com/willardcsoriano/wi/internal/hooks"
-	"github.com/willardcsoriano/wi/internal/providers"
+	"github.com/willardcsoriano/wi/internal/session"
 )
 
 // sharedProg holds the *tea.Program reference so tea.Cmd goroutines
@@ -22,7 +22,9 @@ type sharedProg struct {
 }
 
 // RunRepl starts the interactive REPL and blocks until the user exits.
-func RunRepl(p providers.Provider, hooksCfg hooks.Config) error {
+// The active provider is read from session.Get() on each turn so that
+// /provider and /model switches take effect immediately.
+func RunRepl(hooksCfg hooks.Config) error {
 	ti := textinput.New()
 	ti.Focus()
 	ti.CharLimit = 4096
@@ -31,7 +33,6 @@ func RunRepl(p providers.Provider, hooksCfg hooks.Config) error {
 	m := replModel{
 		input:    ti,
 		shared:   shared,
-		provider: p,
 		hooksCfg: hooksCfg,
 	}
 
@@ -61,7 +62,6 @@ type replModel struct {
 	input    textinput.Model
 	running  bool
 	shared   *sharedProg
-	provider providers.Provider
 	hooksCfg hooks.Config
 }
 
@@ -129,11 +129,10 @@ func (m replModel) View() string {
 
 func (m replModel) execAgent(text string) tea.Cmd {
 	prog := m.shared.prog
-	p := m.provider
 	hooksCfg := m.hooksCfg
 	return func() tea.Msg {
 		w := newProgWriter(prog)
-		err := agent.Run(context.Background(), text, p, hooksCfg, w)
+		err := agent.Run(context.Background(), text, session.Get(), hooksCfg, w)
 		w.flush()
 		return agentDoneMsg{err: err}
 	}
