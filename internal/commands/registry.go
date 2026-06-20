@@ -18,6 +18,8 @@ var registry = map[string]Handler{
 	"/pr":        handlePR,
 	"/merge":     handleMerge,
 	"/commit":    handleCommit,
+	"/provider":  handleProvider,
+	"/model":     handleModel,
 }
 
 // Dispatch routes a slash command to its handler. Returns false if the REPL
