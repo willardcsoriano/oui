@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/willardcsoriano/wi/internal/session"
+	"github.com/willardcsoriano/oui/internal/session"
 )
 
 func handleProvider(args string, w io.Writer) (bool, error) {

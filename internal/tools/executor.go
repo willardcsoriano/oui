@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/willardcsoriano/wi/internal/providers"
+	"github.com/willardcsoriano/oui/internal/providers"
 )
 
 var Schemas = []providers.ToolSchema{

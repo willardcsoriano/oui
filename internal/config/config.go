@@ -25,7 +25,7 @@ type Config struct {
 // Path returns the canonical config file path.
 func Path() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".wi", "config.toml")
+	return filepath.Join(home, ".oui", "config.toml")
 }
 
 // Load reads the config file, creating it with defaults if missing.

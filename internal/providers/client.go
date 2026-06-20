@@ -41,8 +41,8 @@ func ResolveModel(explicit string) string {
 	if explicit != "" {
 		return explicit
 	}
-	envModel := os.Getenv("WI_MODEL")
-	envProvider := os.Getenv("WI_PROVIDER")
+	envModel := os.Getenv("OUI_MODEL")
+	envProvider := os.Getenv("OUI_PROVIDER")
 
 	if envModel != "" && strings.Contains(envModel, "/") {
 		return envModel
@@ -93,7 +93,7 @@ func New(qualifiedModel string) (Provider, error) {
 
 	baseURL := ""
 	if name == "ollama" {
-		baseURL = os.Getenv("WI_OLLAMA_BASE_URL")
+		baseURL = os.Getenv("OUI_OLLAMA_BASE_URL")
 		if baseURL == "" {
 			baseURL = os.Getenv("OLLAMA_API_BASE")
 		}

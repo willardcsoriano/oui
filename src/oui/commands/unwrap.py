@@ -5,7 +5,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
 
-from wi.commands.wrap import HANDOFF_PATH
+from oui.commands.wrap import HANDOFF_PATH
 
 
 async def handle(args: str, console: Console) -> bool:

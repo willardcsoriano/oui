@@ -1,6 +1,6 @@
 ## Overview
 
-This file is the single source of truth for where `wi` is right now — what has landed, what is in flight, what is next, and any decisions or blockers worth remembering. It is updated at the end of each work session or whenever a phase boundary is crossed. The roadmap in `docs/ROADMAP.md` defines the full plan; this file tracks execution against it. If this file and the roadmap disagree, this file reflects reality and the roadmap reflects intent.
+This file is the single source of truth for where `oui` is right now — what has landed, what is in flight, what is next, and any decisions or blockers worth remembering. It is updated at the end of each work session or whenever a phase boundary is crossed. The roadmap in `docs/ROADMAP.md` defines the full plan; this file tracks execution against it. If this file and the roadmap disagree, this file reflects reality and the roadmap reflects intent.
 
 ---
 
@@ -45,8 +45,8 @@ This file is the single source of truth for where `wi` is right now — what has
 
 ### Phase 0 — Project Scaffold (merged via PR #1)
 - `pyproject.toml` with `uv`, `typer`, `rich`, `litellm`
-- `src/wi/` directory layout: `agent/`, `providers/`, `tools/`, `commands/`, `hooks/`
-- `wi` CLI entry point: REPL on `wi`, one-shot on `wi "<prompt>"`
+- `src/oui/` directory layout: `agent/`, `providers/`, `tools/`, `commands/`, `hooks/`
+- `oui` CLI entry point: REPL on `oui`, one-shot on `oui "<prompt>"`
 - `.gitignore` covering pycache, venv, dist, `.env`
 - Docs moved to `docs/`
 
@@ -57,8 +57,8 @@ This file is the single source of truth for where `wi` is right now — what has
 - `cli.py`: loop wired into REPL and one-shot; `--model` flag for runtime override
 
 ### Phase 2 — Multi-Provider Validation
-- `providers/client.py`: replaced `default_model()` with `resolve_model()` — composes `WI_PROVIDER` + `WI_MODEL` env vars; `_PROVIDER_DEFAULTS` table for Anthropic, OpenAI, Gemini, DeepSeek, Ollama; `_extra_kwargs()` injects `api_base` for Ollama automatically
-- `agent/loop.py`: catches `litellm.AuthenticationError` and `BadRequestError` with actionable messages; `ValueError` from bad `WI_PROVIDER` surfaced cleanly in REPL
+- `providers/client.py`: replaced `default_model()` with `resolve_model()` — composes `OUI_PROVIDER` + `OUI_MODEL` env vars; `_PROVIDER_DEFAULTS` table for Anthropic, OpenAI, Gemini, DeepSeek, Ollama; `_extra_kwargs()` injects `api_base` for Ollama automatically
+- `agent/loop.py`: catches `litellm.AuthenticationError` and `BadRequestError` with actionable messages; `ValueError` from bad `OUI_PROVIDER` surfaced cleanly in REPL
 - `pyproject.toml`: added `pytest>=8.0` dev dependency group
 - `tests/providers/test_client.py`: 8 unit tests covering all `resolve_model()` branches — no API calls required
 
@@ -68,8 +68,8 @@ This file is the single source of truth for where `wi` is right now — what has
 - `tests/agent/test_loop.py`: 5 async unit tests covering `_execute` — normal result, malformed args, denied command, concurrent ordering, unexpected exception
 
 ### Phase 4 — Hooks System
-- `hooks/loader.py`: `HooksConfig` dataclass + `load(path)` — reads `~/.wi/hooks.toml`; supports `[[pre_tool_use]]`, `[[post_tool_use]]` arrays and `[session]` start/end as string or list; returns empty config if file absent
-- `hooks/runner.py`: `run_pre_tool_use` (blocks on non-zero exit, exposes `WI_TOOL_NAME`/`WI_TOOL_ARGS` env), `run_post_tool_use` (silent on failure, adds `WI_TOOL_RESULT`), `run_lifecycle` (sequential commands)
+- `hooks/loader.py`: `HooksConfig` dataclass + `load(path)` — reads `~/.oui/hooks.toml`; supports `[[pre_tool_use]]`, `[[post_tool_use]]` arrays and `[session]` start/end as string or list; returns empty config if file absent
+- `hooks/runner.py`: `run_pre_tool_use` (blocks on non-zero exit, exposes `OUI_TOOL_NAME`/`OUI_TOOL_ARGS` env), `run_post_tool_use` (silent on failure, adds `OUI_TOOL_RESULT`), `run_lifecycle` (sequential commands)
 - `agent/loop.py`: loads config once per `run()` call; wraps hook calls in `asyncio.to_thread()`; PreToolUse blocks before tool dispatch, PostToolUse fires after result
 - `cli.py`: extracted `_async_oneshot()`; lifecycle hooks fire via `asyncio.to_thread()` at session start/end in both REPL and one-shot paths, with `finally` guaranteeing session.end
 - `tests/hooks/test_loader.py` + `tests/hooks/test_runner.py`: 21 tests covering all loader branches and runner behaviour (blocking, matching, env vars, lifecycle ordering)
@@ -90,18 +90,18 @@ This file is the single source of truth for where `wi` is right now — what has
 ---
 
 ### Phase 6 — Go Port
-- `go.mod` at repo root: module `github.com/willardcsoriano/wi`, Go 1.24, deps cobra/bubbletea/lipgloss/bubbles/toml
+- `go.mod` at repo root: module `github.com/willardcsoriano/oui`, Go 1.24, deps cobra/bubbletea/lipgloss/bubbles/toml
 - `internal/providers/types.go`: shared `Message`, `ToolCall`, `ToolSchema`, `TurnResult`, `Provider` interface
 - `internal/providers/anthropic.go`: direct Anthropic SSE streaming client — translates internal message format (batching tool-result messages into Anthropic's grouped user turn), parses SSE events by type, accumulates text + tool calls
 - `internal/providers/openai.go`: OpenAI-compatible SSE streaming client — covers OpenAI, Gemini, DeepSeek, Ollama via base URL injection
-- `internal/providers/client.go`: `ResolveModel()` mirrors Python logic (WI_PROVIDER + WI_MODEL composition); `New()` factory dispatching to provider implementations
+- `internal/providers/client.go`: `ResolveModel()` mirrors Python logic (OUI_PROVIDER + OUI_MODEL composition); `New()` factory dispatching to provider implementations
 - `internal/tools/executor.go`: `read_file`, `write_file`, `bash` tools with the same deny list as the Python port
-- `internal/hooks/loader.go`: TOML loader via BurntSushi/toml — same `~/.wi/hooks.toml` schema, string-or-slice lifecycle commands
-- `internal/hooks/runner.go`: `RunPreToolUse`, `RunPostToolUse`, `RunLifecycle` — subprocess hook execution with `WI_TOOL_*` env vars
+- `internal/hooks/loader.go`: TOML loader via BurntSushi/toml — same `~/.oui/hooks.toml` schema, string-or-slice lifecycle commands
+- `internal/hooks/runner.go`: `RunPreToolUse`, `RunPostToolUse`, `RunLifecycle` — subprocess hook execution with `OUI_TOOL_*` env vars
 - `internal/agent/loop.go`: streaming turn loop with goroutine-based parallel tool execution (`sync.WaitGroup`)
 - `internal/commands/*.go`: all 8 commands — `/gitignore`, `/wrap`, `/unwrap`, `/bye`, `/privacy`, `/pr`, `/merge`, `/commit`
 - `internal/tui/repl.go`: bubbletea REPL — textinput prompt, tea.Cmd goroutines for agent/command dispatch, `progWriter` buffers to line boundaries for `prog.Println`
-- `cmd/wi/main.go`: cobra CLI — `wi [prompt]` (one-shot vs REPL), `--model` flag, lifecycle hooks
+- `cmd/oui/main.go`: cobra CLI — `oui [prompt]` (one-shot vs REPL), `--model` flag, lifecycle hooks
 - `.github/workflows/release.yml`: matrix build for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 — publishes to GitHub release on `v*` tag
 - All targets cross-compile clean (~7–8 MB each, CGO_ENABLED=0)
 

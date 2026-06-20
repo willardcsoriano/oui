@@ -5,7 +5,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.markup import escape
 
-from wi.commands._utils import run
+from oui.commands._utils import run
 
 _TYPE_MAP: dict[str, str] = {
     "tests":  "test",

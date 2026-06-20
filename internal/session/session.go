@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/willardcsoriano/wi/internal/config"
-	"github.com/willardcsoriano/wi/internal/providers"
+	"github.com/willardcsoriano/oui/internal/config"
+	"github.com/willardcsoriano/oui/internal/providers"
 )
 
 var (

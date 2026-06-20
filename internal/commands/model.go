@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/willardcsoriano/wi/internal/providers"
-	"github.com/willardcsoriano/wi/internal/session"
+	"github.com/willardcsoriano/oui/internal/providers"
+	"github.com/willardcsoriano/oui/internal/session"
 )
 
 func handleModel(args string, w io.Writer) (bool, error) {

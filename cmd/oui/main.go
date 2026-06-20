@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/willardcsoriano/wi/internal/agent"
-	"github.com/willardcsoriano/wi/internal/config"
-	"github.com/willardcsoriano/wi/internal/hooks"
-	"github.com/willardcsoriano/wi/internal/providers"
-	"github.com/willardcsoriano/wi/internal/session"
-	"github.com/willardcsoriano/wi/internal/tui"
+	"github.com/willardcsoriano/oui/internal/agent"
+	"github.com/willardcsoriano/oui/internal/config"
+	"github.com/willardcsoriano/oui/internal/hooks"
+	"github.com/willardcsoriano/oui/internal/providers"
+	"github.com/willardcsoriano/oui/internal/session"
+	"github.com/willardcsoriano/oui/internal/tui"
 )
 
 var version = "dev"
@@ -22,14 +22,14 @@ func main() {
 	var profileFlag string
 
 	root := &cobra.Command{
-		Use:   "wi [prompt]",
+		Use:   "oui [prompt]",
 		Short: "Provider-agnostic agentic coding shell",
-		Long: `wi is a provider-agnostic agentic coding shell.
+		Long: `oui is a provider-agnostic agentic coding shell.
 
 Run without arguments to enter the interactive REPL.
 Pass a prompt as an argument for one-shot execution.
 
-Config file: ~/.wi/config.toml (created on first run with all providers pre-filled).
+Config file: ~/.oui/config.toml (created on first run with all providers pre-filled).
 Switch providers and models interactively with /provider and /model.`,
 		Args:          cobra.MaximumNArgs(1),
 		SilenceUsage:  true,
@@ -91,7 +91,7 @@ Switch providers and models interactively with /provider and /model.`,
 		Use:   "version",
 		Short: "Print version and exit",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("wi " + version)
+			fmt.Println("oui " + version)
 		},
 	}
 	root.AddCommand(versionCmd)

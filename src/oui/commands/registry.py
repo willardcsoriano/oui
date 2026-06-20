@@ -6,7 +6,7 @@ from typing import Any
 from rich.console import Console
 from rich.markup import escape
 
-from wi.commands import bye, commit, gitignore, merge, pr, privacy, unwrap, wrap
+from oui.commands import bye, commit, gitignore, merge, pr, privacy, unwrap, wrap
 
 Handler = Callable[[str, Console], Awaitable[bool]]
 
