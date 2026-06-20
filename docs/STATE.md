@@ -16,6 +16,9 @@ This file is the single source of truth for where `oui` is right now — what ha
   - [Phase 4 — Hooks System](#phase-4-hooks-system)
   - [Phase 5 — Built-in Command Suite](#phase-5-built-in-command-suite)
   - [Phase 6 — Go Port](#phase-6-go-port)
+- [What Has Landed (main) — Post-Phase-6](#what-has-landed-main-post-phase-6)
+  - [PR #8 — Config and Provider Switching](#pr-8-config-and-provider-switching)
+  - [PR #9 — Rename `wi` → `oui`](#pr-9-rename-wi-oui)
 - [What Is In Flight](#what-is-in-flight)
 - [What Is Next](#what-is-next)
 - [Key Decisions Made](#key-decisions-made)
@@ -23,7 +26,7 @@ This file is the single source of truth for where `oui` is right now — what ha
 
 ## Current Status
 
-**Active phase:** Phase 6 implemented — pending PR/merge
+**Active phase:** All planned phases complete. `main` is clean.
 
 **Branch/PR state:**
 
@@ -35,9 +38,11 @@ This file is the single source of truth for where `oui` is right now — what ha
 | `feat/phase-3-parallelism` | #4 | Merged to `main` |
 | `feat/phase-4-hooks` | #5 | Merged to `main` |
 | `feat/phase-5-commands` | #6 | Merged to `main` |
-| `feat/phase-6-go-port` | — | Local only, unpushed — ready to PR |
+| `feat/phase-6-go-port` | #7 | Merged to `main` |
+| `feat/config-and-provider-switching` | #8 | Merged to `main` |
+| `feat/rename-to-oui` | #9 | Merged to `main` |
 
-**Immediate next action:** `/pr` then `/merge`.
+**Immediate next action:** None — `main` is stable and clean.
 
 ---
 
@@ -107,15 +112,40 @@ This file is the single source of truth for where `oui` is right now — what ha
 
 ---
 
+## What Has Landed (main) — Post-Phase-6
+
+### PR #8 — Config and Provider Switching
+
+- `internal/config/config.go`: `Config` struct (`active_provider`, `active_model`, per-provider `[providers.*]` sections); `Load()` creates `~/.oui/config.toml` with defaults on first run; `Save()` writes atomically via tmp-rename; `ResolveKey()` checks config file first then conventional env var (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.); 12 providers pre-configured including base URLs for Groq, Mistral, Cohere, xAI, Together, Fireworks, Perplexity, Ollama
+- `internal/session/session.go`: process-scoped singleton with `sync.RWMutex`; `Init()` sets active provider/model at startup; `SetProvider()` / `SetModel()` hot-swap without restart; exposes `Get()`, `ActiveProvider()`, `ActiveModel()`, `Cfg()`
+- `internal/commands/provider.go` + `model.go`: `/provider [name]` and `/model [name]` REPL commands — print current state when called with no arg, switch when arg provided
+- `internal/commands/registry.go`: updated dispatch to route `/provider` and `/model`
+- `internal/providers/client.go`: `NewFromConfig()` factory replaces env-var-only construction; accepts provider name, model, key, and base URL directly
+
+### PR #9 — Rename `wi` → `oui`
+
+- Binary renamed: `cmd/wi/` → `cmd/oui/`
+- Module path: `github.com/willardcsoriano/wi` → `github.com/willardcsoriano/oui`
+- Config dir: `~/.wi/` → `~/.oui/`
+- Env vars: `WI_PROVIDER` / `WI_MODEL` → `OUI_PROVIDER` / `OUI_MODEL`
+- Python package: already `src/oui/` — only internal import paths updated
+- CI release workflow updated to build `oui` binary
+
+---
+
 ## What Is In Flight
 
-Phase 6 on `feat/phase-6-go-port` — built, compiled, cross-compiled clean. Awaiting PR and merge.
+Nothing — `main` is clean.
 
 ---
 
 ## What Is Next
 
-Nothing — all planned phases implemented. Future work: live provider smoke tests, `/version` in REPL, shell completions.
+No planned phases remain. Candidate next work:
+- Live provider smoke tests (end-to-end, requires API keys — still manual)
+- `/version` command in REPL
+- Shell completions (cobra can generate these)
+- Persist `/model` and `/provider` selections back to `~/.oui/config.toml`
 
 ---
 
@@ -131,6 +161,8 @@ Nothing — all planned phases implemented. Future work: live provider smoke tes
 | Squash merge strategy | One commit per concern on `main`; keeps history readable |
 | Go port: direct HTTP + SSE, no LiteLLM | LiteLLM has no Go SDK; direct Anthropic and OpenAI-compatible clients cover all providers via base URL injection |
 | bubbletea `sharedProg` pattern | `*tea.Program` must be set before `Run()` starts the event loop; storing it in a shared pointer avoids circular initialization |
+| Config resolves keys from file then env var | Lets users store API keys in `~/.oui/config.toml` without needing shell env; env var fallback keeps zero-config usage working |
+| Session state as process-scoped singleton | `/provider` and `/model` hot-swap without restarting the process; `sync.RWMutex` keeps it safe across goroutines |
 
 ---
 

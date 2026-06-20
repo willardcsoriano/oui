@@ -65,7 +65,7 @@ func SetProvider(name string) error {
 	defer mu.Unlock()
 	pc, ok := cfg.Providers[name]
 	if !ok {
-		return fmt.Errorf("provider %q not found in config — add it to ~/.wi/config.toml", name)
+		return fmt.Errorf("provider %q not found in config — add it to ~/.oui/config.toml", name)
 	}
 	model := pc.DefaultModel
 	p, err := providers.NewFromConfig(name, model, cfg.ResolveKey(name), pc.BaseURL)
