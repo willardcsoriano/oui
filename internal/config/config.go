@@ -15,7 +15,7 @@ type ProviderConfig struct {
 	DefaultModel string `toml:"default_model"`
 }
 
-// Config is the full ~/.wi/config.toml structure.
+// Config is the full ~/.oui/config.toml structure.
 type Config struct {
 	ActiveProvider string                    `toml:"active_provider"`
 	ActiveModel    string                    `toml:"active_model"`

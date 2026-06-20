@@ -113,7 +113,7 @@ func New(qualifiedModel string) (Provider, error) {
 func NewFromConfig(provider, model, apiKey, baseURL string) (Provider, error) {
 	if provider == "anthropic" {
 		if apiKey == "" {
-			return nil, fmt.Errorf("anthropic: no API key — set api_key in ~/.wi/config.toml or ANTHROPIC_API_KEY")
+			return nil, fmt.Errorf("anthropic: no API key — set api_key in ~/.oui/config.toml or ANTHROPIC_API_KEY")
 		}
 		return &anthropicProvider{model: model, apiKey: apiKey}, nil
 	}
@@ -130,7 +130,7 @@ func NewFromConfig(provider, model, apiKey, baseURL string) (Provider, error) {
 
 	// All other providers: OpenAI-compatible endpoint.
 	if apiKey == "" {
-		return nil, fmt.Errorf("%s: no API key — set api_key in ~/.wi/config.toml", provider)
+		return nil, fmt.Errorf("%s: no API key — set api_key in ~/.oui/config.toml", provider)
 	}
 	if baseURL == "" {
 		if u, ok := providerBaseURLs[provider]; ok {

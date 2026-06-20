@@ -51,7 +51,7 @@ func handleProvider(args string, w io.Writer) (bool, error) {
 	}
 	name := names[n-1]
 	if !cfg.IsConfigured(name) {
-		fmt.Fprintf(w, "provider %q has no API key — add it to ~/.wi/config.toml\n", name)
+		fmt.Fprintf(w, "provider %q has no API key — add it to ~/.oui/config.toml\n", name)
 		return true, nil
 	}
 	if err := session.SetProvider(name); err != nil {
