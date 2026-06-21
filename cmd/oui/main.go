@@ -248,7 +248,7 @@ func printBanner() {
 	row("cwd", cwd)
 	fmt.Println(bot)
 	fmt.Println()
-	fmt.Println(dim + "  enter send  ·  ctrl-c exit  ·  / commands" + reset)
+	fmt.Println(dim + "  enter send  ·  shift+enter newline  ·  esc cancel/clear  ·  ctrl-c exit  ·  / commands" + reset)
 	fmt.Println()
 }
 

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -27,23 +28,26 @@ type sharedProg struct {
 }
 
 // RunRepl starts the interactive REPL and blocks until the user exits.
-// The active provider is read from session.Get() on each turn so that
-// /provider and /model switches take effect immediately.
 func RunRepl(hooksCfg hooks.Config) error {
-	// Save terminal state unconditionally — restored on exit even if BubbleTea
-	// crashes without cleaning up.
 	if oldState, err := term.GetState(int(os.Stdin.Fd())); err == nil {
 		defer term.Restore(int(os.Stdin.Fd()), oldState) //nolint:errcheck
 	}
 
+	// Request extended key reporting so the terminal distinguishes Shift+Enter
+	// from plain Enter. \033[>4;2m = xterm modifyOtherKeys level 2 (sends
+	// \033[27;2;13~ for Shift+Enter). \033[>1u = Kitty keyboard protocol
+	// progressive enhancement (sends \033[13;2u). Both are silently ignored by
+	// terminals that don't support them.
+	fmt.Fprint(os.Stdout, "\033[>4;2m\033[>1u")
+	defer fmt.Fprint(os.Stdout, "\033[>4;0m\033[<u") //nolint:errcheck
+
 	ta := textarea.New()
 	ta.ShowLineNumbers = false
-	ta.SetHeight(3)
+	ta.SetHeight(1)
 	ta.CharLimit = 0
-	// Remove cursor-line background highlight — looks odd in inline mode.
+	// Remove cursor-line background — looks odd in inline mode.
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
-	// Bold bright-white prompt on line 0 only; continuation lines use a plain
-	// indent so only one ">" appears regardless of textarea height.
+	// Bold bright-white ">" on line 0; plain indent on continuation lines.
 	boldWhite := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
 	ta.FocusedStyle.Prompt = boldWhite
 	ta.BlurredStyle.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
@@ -53,7 +57,6 @@ func RunRepl(hooksCfg hooks.Config) error {
 		}
 		return "  "
 	})
-
 	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
 		ta.SetWidth(w)
 	} else {
@@ -72,11 +75,14 @@ func RunRepl(hooksCfg hooks.Config) error {
 		hooksCfg: hooksCfg,
 	}
 
-	prog := tea.NewProgram(m)
+	// shiftEnterReader translates Shift+Enter sequences to 0x1C (Ctrl+\)
+	// so BubbleTea surfaces them as KeyCtrlBackslash — a key we can act on.
+	stdinReader := &shiftEnterReader{inner: os.Stdin}
+	prog := tea.NewProgram(m, tea.WithInput(stdinReader))
 	shared.prog = prog
 
 	_, err := prog.Run()
-	fmt.Println() // ensure cursor lands on a fresh line after exit
+	fmt.Println()
 	if err != nil {
 		return fmt.Errorf("repl: %w", err)
 	}
@@ -98,7 +104,7 @@ type replModel struct {
 	spinner  spinner.Model
 	running  bool
 	width    int
-	cancel   context.CancelFunc // cancels the current agent run; nil when idle
+	cancel   context.CancelFunc
 	shared   *sharedProg
 	hooksCfg hooks.Config
 }
@@ -123,23 +129,33 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		// Quit/cancel shortcuts — always handled first, even mid-run.
+		// Quit/cancel — always first, even mid-run.
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyCtrlD:
 			if m.cancel != nil {
 				m.cancel()
 			}
 			return m, tea.Quit
+
 		case tea.KeyEsc:
 			if m.running {
-				// Cancel in-flight agent; stay in REPL (don't quit).
 				if m.cancel != nil {
 					m.cancel()
 				}
 				return m, nil
 			}
-			// Idle: clear the input.
 			m.input.Reset()
+			m.input.SetHeight(1)
+			return m, nil
+
+		case tea.KeyCtrlBackslash:
+			// Shift+Enter translated by shiftEnterReader — insert newline.
+			if !m.running {
+				var cmd tea.Cmd
+				m.input, cmd = m.input.Update(tea.KeyMsg{Type: tea.KeyEnter})
+				m.growInputHeight()
+				return m, cmd
+			}
 			return m, nil
 		}
 
@@ -147,10 +163,12 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Plain Enter submits; Alt+Enter inserts a newline (multi-line input).
+		// Plain Enter = submit. Alt+Enter = newline (fallback for terminals
+		// that don't support modifyOtherKeys/Kitty).
 		if msg.Type == tea.KeyEnter && !msg.Alt {
 			text := strings.TrimSpace(m.input.Value())
 			m.input.Reset()
+			m.input.SetHeight(1)
 			if text == "" {
 				return m, nil
 			}
@@ -190,7 +208,20 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
+	m.growInputHeight()
 	return m, cmd
+}
+
+// growInputHeight auto-expands the textarea up to 4 lines as content grows.
+func (m *replModel) growInputHeight() {
+	lines := strings.Count(m.input.Value(), "\n") + 1
+	if lines < 1 {
+		lines = 1
+	}
+	if lines > 4 {
+		lines = 4
+	}
+	m.input.SetHeight(lines)
 }
 
 func (m replModel) View() string {
@@ -227,12 +258,49 @@ func (m replModel) execCommand(text string) tea.Cmd {
 	}
 }
 
+// ── shiftEnterReader ──────────────────────────────────────────────────────────
+
+// shiftEnterReader wraps stdin and translates Shift+Enter escape sequences
+// to 0x1C (Ctrl+\) before BubbleTea's key parser sees them. Two protocols:
+//   - xterm modifyOtherKeys level 2: \033[27;2;13~
+//   - Kitty keyboard protocol:       \033[13;2u
+var (
+	seqModifyOtherKeys = []byte("\x1b[27;2;13~")
+	seqKittyShiftEnter = []byte("\x1b[13;2u")
+	seqSubstitute      = []byte{0x1c}
+)
+
+type shiftEnterReader struct {
+	inner *os.File
+	buf   []byte
+}
+
+// Fd satisfies charmbracelet/x/term.File so BubbleTea puts stdin into raw mode.
+func (r *shiftEnterReader) Fd() uintptr { return r.inner.Fd() }
+
+func (r *shiftEnterReader) Read(p []byte) (int, error) {
+	if len(r.buf) > 0 {
+		n := copy(p, r.buf)
+		r.buf = r.buf[n:]
+		return n, nil
+	}
+	tmp := make([]byte, 256)
+	n, err := r.inner.Read(tmp)
+	if n == 0 {
+		return 0, err
+	}
+	data := tmp[:n]
+	data = bytes.ReplaceAll(data, seqModifyOtherKeys, seqSubstitute)
+	data = bytes.ReplaceAll(data, seqKittyShiftEnter, seqSubstitute)
+	n2 := copy(p, data)
+	if n2 < len(data) {
+		r.buf = append(r.buf[:0], data[n2:]...)
+	}
+	return n2, err
+}
+
 // ── progWriter ────────────────────────────────────────────────────────────────
 
-// progWriter buffers writes to line boundaries, word-wraps each line to the
-// current terminal width, and forwards to tea.Program.Println (goroutine-safe).
-// Wrapping is done here because BubbleTea disables terminal auto-wrap in inline
-// mode, so long lines would otherwise overflow off-screen.
 type progWriter struct {
 	prog *tea.Program
 	mu   sync.Mutex
