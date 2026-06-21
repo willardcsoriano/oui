@@ -4,17 +4,39 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/willardcsoriano/oui/internal/hooks"
 	"github.com/willardcsoriano/oui/internal/providers"
+	"github.com/willardcsoriano/oui/internal/session"
 	"github.com/willardcsoriano/oui/internal/tools"
 )
+
+// systemPrompt builds the effective system prompt: a fixed context block
+// (cwd + tool descriptions) followed by any user-configured prompt.
+func systemPrompt() string {
+	cwd, _ := os.Getwd()
+	var sb strings.Builder
+	sb.WriteString("You are a helpful AI coding assistant. ")
+	sb.WriteString("You have access to tools: read_file (read any file), write_file (create/overwrite a file), ")
+	sb.WriteString("bash (run shell commands), web_search (search the web via DuckDuckGo), and fetch_url (fetch a URL and return its text). ")
+	sb.WriteString("Use your tools proactively — explore the codebase, run commands, and search the web rather than guessing.\n\n")
+	sb.WriteString("Working directory: " + cwd)
+	if custom := session.SystemPrompt(); custom != "" {
+		sb.WriteString("\n\n" + custom)
+	}
+	return sb.String()
+}
 
 // Run executes the agentic loop for a single user prompt.
 // All output — streamed text and tool results — is written to w in real time.
 func Run(ctx context.Context, prompt string, p providers.Provider, hooksCfg hooks.Config, w io.Writer) error {
-	msgs := []providers.Message{{Role: "user", Content: prompt}}
+	msgs := []providers.Message{
+		{Role: "system", Content: systemPrompt()},
+		{Role: "user", Content: prompt},
+	}
 
 	for {
 		result, err := p.Stream(ctx, msgs, tools.Schemas, w)

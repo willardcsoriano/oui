@@ -52,6 +52,16 @@ func ActiveProvider() string {
 	return providerName
 }
 
+// SystemPrompt returns the user-configured system prompt (may be empty).
+func SystemPrompt() string {
+	mu.RLock()
+	defer mu.RUnlock()
+	if cfg == nil {
+		return ""
+	}
+	return cfg.SystemPrompt
+}
+
 // ActiveModel returns the current model name.
 func ActiveModel() string {
 	mu.RLock()

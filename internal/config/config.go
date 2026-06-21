@@ -19,6 +19,7 @@ type ProviderConfig struct {
 type Config struct {
 	ActiveProvider string                    `toml:"active_provider"`
 	ActiveModel    string                    `toml:"active_model"`
+	SystemPrompt   string                    `toml:"system_prompt"`
 	Providers      map[string]ProviderConfig `toml:"providers"`
 }
 

@@ -208,6 +208,8 @@ func toOpenAIMessages(msgs []Message) []openAIMsg {
 	result := make([]openAIMsg, 0, len(msgs))
 	for _, m := range msgs {
 		switch m.Role {
+		case "system":
+			result = append(result, openAIMsg{Role: "system", Content: m.Content})
 		case "user":
 			result = append(result, openAIMsg{Role: "user", Content: m.Content})
 		case "assistant":
