@@ -14,12 +14,34 @@ import (
 	"github.com/willardcsoriano/oui/internal/tools"
 )
 
+// providerIdentity maps provider names to how the model should identify itself.
+var providerIdentity = map[string]string{
+	"anthropic":  "Claude, made by Anthropic",
+	"openai":     "an OpenAI model",
+	"deepseek":   "DeepSeek, made by DeepSeek",
+	"gemini":     "Gemini, made by Google",
+	"groq":       "an AI model hosted on Groq",
+	"mistral":    "a Mistral AI model",
+	"cohere":     "Command, made by Cohere",
+	"xai":        "Grok, made by xAI",
+	"together":   "an AI model hosted on Together AI",
+	"fireworks":  "an AI model hosted on Fireworks AI",
+	"perplexity": "Perplexity AI",
+	"ollama":     "a locally-hosted model via Ollama",
+}
+
 // systemPrompt builds the effective system prompt: a fixed context block
-// (cwd + tool descriptions) followed by any user-configured prompt.
+// (cwd, identity, tool descriptions) followed by any user-configured prompt.
 func systemPrompt() string {
 	cwd, _ := os.Getwd()
+	provider := session.ActiveProvider()
+
 	var sb strings.Builder
 	sb.WriteString("You are a helpful AI coding assistant. ")
+	if identity, ok := providerIdentity[provider]; ok {
+		sb.WriteString("Your identity: you are " + identity + ". ")
+		sb.WriteString("If asked who you are, say so clearly and do not claim to be a different AI. ")
+	}
 	sb.WriteString("You have access to tools: read_file (read any file), write_file (create/overwrite a file), ")
 	sb.WriteString("bash (run shell commands), web_search (search the web via DuckDuckGo), and fetch_url (fetch a URL and return its text). ")
 	sb.WriteString("Use your tools proactively — explore the codebase, run commands, and search the web rather than guessing.\n\n")
