@@ -12,8 +12,7 @@ import (
 )
 
 // Run executes the agentic loop for a single user prompt.
-// It streams model output to w, executes tool calls in parallel goroutines,
-// and continues until the model produces no further tool calls.
+// All output — streamed text and tool results — is written to w in real time.
 func Run(ctx context.Context, prompt string, p providers.Provider, hooksCfg hooks.Config, w io.Writer) error {
 	msgs := []providers.Message{{Role: "user", Content: prompt}}
 
