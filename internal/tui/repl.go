@@ -37,19 +37,12 @@ func RunRepl(hooksCfg hooks.Config) error {
 	ta.ShowLineNumbers = false
 	ta.SetHeight(1)
 	ta.CharLimit = 0
-	// Subtle background so the input zone stands out from streamed output.
-	inputBG := lipgloss.AdaptiveColor{Light: "254", Dark: "237"}
-	baseBG := lipgloss.NewStyle().Background(inputBG)
-	ta.FocusedStyle.Base = baseBG
-	ta.BlurredStyle.Base = baseBG
-	// CursorLine must share the same background or it punches a hole in the fill.
-	ta.FocusedStyle.CursorLine = baseBG
-	ta.FocusedStyle.Text = baseBG
-	ta.BlurredStyle.Text = baseBG
+	// Remove cursor-line highlight — looks odd in inline mode.
+	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
 	// Bold bright-white ">" on line 0; plain indent on continuation lines.
-	boldWhite := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Background(inputBG)
+	boldWhite := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
 	ta.FocusedStyle.Prompt = boldWhite
-	ta.BlurredStyle.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(inputBG)
+	ta.BlurredStyle.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 	ta.SetPromptFunc(2, func(lineIdx int) string {
 		if lineIdx == 0 {
 			return "> "
@@ -242,11 +235,17 @@ func (m replModel) View() string {
 	return line + "\n" + m.input.View() + "\n" + line
 }
 
+var echoStyle = lipgloss.NewStyle().
+	Background(lipgloss.AdaptiveColor{Light: "254", Dark: "237"}).
+	Bold(true)
+
 func echoPrompt(prog *tea.Program, text string) {
+	w := termWidth()
+	style := echoStyle.Width(w)
 	lines := strings.Split(text, "\n")
-	prog.Println("\033[2m>\033[0m " + lines[0])
+	prog.Println(style.Render("> " + lines[0]))
 	for _, l := range lines[1:] {
-		prog.Println("  " + l)
+		prog.Println(style.Render("  " + l))
 	}
 }
 
