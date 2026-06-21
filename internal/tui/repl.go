@@ -275,8 +275,11 @@ type shiftEnterReader struct {
 	buf   []byte
 }
 
-// Fd satisfies charmbracelet/x/term.File so BubbleTea puts stdin into raw mode.
-func (r *shiftEnterReader) Fd() uintptr { return r.inner.Fd() }
+// Fd, Write, and Close satisfy charmbracelet/x/term.File (io.ReadWriteCloser +
+// Fd) so BubbleTea detects this as a terminal and puts stdin into raw mode.
+func (r *shiftEnterReader) Fd() uintptr                { return r.inner.Fd() }
+func (r *shiftEnterReader) Write(p []byte) (int, error) { return r.inner.Write(p) }
+func (r *shiftEnterReader) Close() error                { return r.inner.Close() }
 
 func (r *shiftEnterReader) Read(p []byte) (int, error) {
 	if len(r.buf) > 0 {
