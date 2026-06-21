@@ -37,16 +37,22 @@ func RunRepl(hooksCfg hooks.Config) error {
 	}
 
 	ta := textarea.New()
-	ta.Prompt = "> "
 	ta.ShowLineNumbers = false
 	ta.SetHeight(3)
 	ta.CharLimit = 0
 	// Remove cursor-line background highlight — looks odd in inline mode.
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
-	// Bold bright-white prompt to match the original textinput design.
+	// Bold bright-white prompt on line 0 only; continuation lines use a plain
+	// indent so only one ">" appears regardless of textarea height.
 	boldWhite := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
 	ta.FocusedStyle.Prompt = boldWhite
 	ta.BlurredStyle.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	ta.SetPromptFunc(2, func(lineIdx int) string {
+		if lineIdx == 0 {
+			return "> "
+		}
+		return "  "
+	})
 
 	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
 		ta.SetWidth(w)
