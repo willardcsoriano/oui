@@ -102,6 +102,7 @@ type replModel struct {
 	input    textarea.Model
 	spinner  spinner.Model
 	running  bool
+	quitting bool
 	width    int
 	cancel   context.CancelFunc
 	shared   *sharedProg
@@ -134,6 +135,7 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cancel != nil {
 				m.cancel()
 			}
+			m.quitting = true
 			return m, tea.Quit
 
 		case tea.KeyEsc:
@@ -172,6 +174,7 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if text == "exit" || text == "quit" {
+				m.quitting = true
 				return m, tea.Quit
 			}
 			m.running = true
@@ -224,6 +227,9 @@ func (m *replModel) growInputHeight() {
 }
 
 func (m replModel) View() string {
+	if m.quitting {
+		return ""
+	}
 	w := m.width
 	if w == 0 {
 		w = 80
