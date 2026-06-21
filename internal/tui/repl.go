@@ -33,13 +33,6 @@ func RunRepl(hooksCfg hooks.Config) error {
 		defer term.Restore(int(os.Stdin.Fd()), oldState) //nolint:errcheck
 	}
 
-	// Request xterm modifyOtherKeys level 2 so Shift+Enter is reported as
-	// \033[27;2;13~ instead of \r. Only modifier key combinations change;
-	// plain keys (including Ctrl+C) are unaffected. Silently ignored by
-	// terminals that don't support it.
-	fmt.Fprint(os.Stdout, "\033[>4;2m")
-	defer fmt.Fprint(os.Stdout, "\033[>4;0m") //nolint:errcheck
-
 	ta := textarea.New()
 	ta.ShowLineNumbers = false
 	ta.SetHeight(1)
@@ -259,27 +252,44 @@ func (m replModel) execCommand(text string) tea.Cmd {
 
 // ── shiftEnterReader ──────────────────────────────────────────────────────────
 
-// shiftEnterReader wraps stdin and translates Shift+Enter escape sequences
-// to 0x1C (Ctrl+\) before BubbleTea's key parser sees them. Two protocols:
-//   - xterm modifyOtherKeys level 2: \033[27;2;13~
-//   - Kitty keyboard protocol:       \033[13;2u
+// shiftEnterReader wraps stdin to:
+//  1. Send \033[>4;2m (xterm modifyOtherKeys level 2) on the FIRST Read — at
+//     that point BubbleTea has already put the terminal in raw mode, so there
+//     is no echo and no terminal response bytes queued on stdin.
+//  2. Translate \033[27;2;13~ (Shift+Enter in modifyOtherKeys mode) to 0x1C
+//     (Ctrl+\) which BubbleTea maps to KeyCtrlBackslash.
+//  3. Restore the mode in Close(), which BubbleTea calls on exit, without
+//     actually closing os.Stdin (that would break the parent shell).
 var (
-	seqModifyOtherKeys = []byte("\x1b[27;2;13~") // xterm modifyOtherKeys Shift+Enter
-	seqSubstitute      = []byte{0x1c}             // → Ctrl+\ (KeyCtrlBackslash)
+	seqModifyOtherKeys = []byte("\x1b[27;2;13~")
+	seqSubstitute      = []byte{0x1c}
 )
 
 type shiftEnterReader struct {
-	inner *os.File
-	buf   []byte
+	inner    *os.File
+	buf      []byte
+	initOnce sync.Once
 }
 
 // Fd, Write, and Close satisfy charmbracelet/x/term.File (io.ReadWriteCloser +
 // Fd) so BubbleTea detects this as a terminal and puts stdin into raw mode.
 func (r *shiftEnterReader) Fd() uintptr                { return r.inner.Fd() }
 func (r *shiftEnterReader) Write(p []byte) (int, error) { return r.inner.Write(p) }
-func (r *shiftEnterReader) Close() error                { return r.inner.Close() }
+
+// Close restores modifyOtherKeys but does NOT close os.Stdin.
+func (r *shiftEnterReader) Close() error {
+	fmt.Fprint(os.Stdout, "\033[>4;0m") //nolint:errcheck
+	return nil
+}
 
 func (r *shiftEnterReader) Read(p []byte) (int, error) {
+	// Enable modifyOtherKeys exactly once, after BubbleTea has set up raw mode.
+	// Sending this in cooked mode would cause some terminals to queue response
+	// bytes on stdin, which BubbleTea would then misinterpret as user input.
+	r.initOnce.Do(func() {
+		fmt.Fprint(os.Stdout, "\033[>4;2m") //nolint:errcheck
+	})
+
 	if len(r.buf) > 0 {
 		n := copy(p, r.buf)
 		r.buf = r.buf[n:]
