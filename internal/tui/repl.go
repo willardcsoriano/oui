@@ -254,9 +254,11 @@ func (m replModel) execAgent(ctx context.Context, text string) tea.Cmd {
 	hooksCfg := m.hooksCfg
 	return func() tea.Msg {
 		echoPrompt(prog, text)
+		prog.Println("")
 		w := newProgWriter(prog)
 		err := agent.Run(ctx, text, session.Get(), hooksCfg, w)
 		w.flush()
+		prog.Println("")
 		return agentDoneMsg{err: err}
 	}
 }
