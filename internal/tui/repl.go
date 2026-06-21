@@ -33,13 +33,12 @@ func RunRepl(hooksCfg hooks.Config) error {
 		defer term.Restore(int(os.Stdin.Fd()), oldState) //nolint:errcheck
 	}
 
-	// Request extended key reporting so the terminal distinguishes Shift+Enter
-	// from plain Enter. \033[>4;2m = xterm modifyOtherKeys level 2 (sends
-	// \033[27;2;13~ for Shift+Enter). \033[>1u = Kitty keyboard protocol
-	// progressive enhancement (sends \033[13;2u). Both are silently ignored by
-	// terminals that don't support them.
-	fmt.Fprint(os.Stdout, "\033[>4;2m\033[>1u")
-	defer fmt.Fprint(os.Stdout, "\033[>4;0m\033[<u") //nolint:errcheck
+	// Request xterm modifyOtherKeys level 2 so Shift+Enter is reported as
+	// \033[27;2;13~ instead of \r. Only modifier key combinations change;
+	// plain keys (including Ctrl+C) are unaffected. Silently ignored by
+	// terminals that don't support it.
+	fmt.Fprint(os.Stdout, "\033[>4;2m")
+	defer fmt.Fprint(os.Stdout, "\033[>4;0m") //nolint:errcheck
 
 	ta := textarea.New()
 	ta.ShowLineNumbers = false
@@ -265,9 +264,8 @@ func (m replModel) execCommand(text string) tea.Cmd {
 //   - xterm modifyOtherKeys level 2: \033[27;2;13~
 //   - Kitty keyboard protocol:       \033[13;2u
 var (
-	seqModifyOtherKeys = []byte("\x1b[27;2;13~")
-	seqKittyShiftEnter = []byte("\x1b[13;2u")
-	seqSubstitute      = []byte{0x1c}
+	seqModifyOtherKeys = []byte("\x1b[27;2;13~") // xterm modifyOtherKeys Shift+Enter
+	seqSubstitute      = []byte{0x1c}             // → Ctrl+\ (KeyCtrlBackslash)
 )
 
 type shiftEnterReader struct {
@@ -294,7 +292,6 @@ func (r *shiftEnterReader) Read(p []byte) (int, error) {
 	}
 	data := tmp[:n]
 	data = bytes.ReplaceAll(data, seqModifyOtherKeys, seqSubstitute)
-	data = bytes.ReplaceAll(data, seqKittyShiftEnter, seqSubstitute)
 	n2 := copy(p, data)
 	if n2 < len(data) {
 		r.buf = append(r.buf[:0], data[n2:]...)
