@@ -167,13 +167,6 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if text == "exit" || text == "quit" {
 				return m, tea.Quit
 			}
-			// Echo the submitted prompt above the separator so it stays
-			// visible in the scrollback after the textarea clears.
-			lines := strings.Split(text, "\n")
-			m.shared.prog.Println("\033[2m>\033[0m " + lines[0])
-			for _, l := range lines[1:] {
-				m.shared.prog.Println("  " + l)
-			}
 			m.running = true
 			if strings.HasPrefix(text, "/") {
 				return m, tea.Batch(m.execCommand(text), m.spinner.Tick)
@@ -236,10 +229,19 @@ func (m replModel) View() string {
 	return line + "\n" + m.input.View() + "\n" + line
 }
 
+func echoPrompt(prog *tea.Program, text string) {
+	lines := strings.Split(text, "\n")
+	prog.Println("\033[2m>\033[0m " + lines[0])
+	for _, l := range lines[1:] {
+		prog.Println("  " + l)
+	}
+}
+
 func (m replModel) execAgent(ctx context.Context, text string) tea.Cmd {
 	prog := m.shared.prog
 	hooksCfg := m.hooksCfg
 	return func() tea.Msg {
+		echoPrompt(prog, text)
 		w := newProgWriter(prog)
 		err := agent.Run(ctx, text, session.Get(), hooksCfg, w)
 		w.flush()
@@ -250,6 +252,7 @@ func (m replModel) execAgent(ctx context.Context, text string) tea.Cmd {
 func (m replModel) execCommand(text string) tea.Cmd {
 	prog := m.shared.prog
 	return func() tea.Msg {
+		echoPrompt(prog, text)
 		w := newProgWriter(prog)
 		cont, err := commands.Dispatch(text, w)
 		w.flush()
