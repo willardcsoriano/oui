@@ -4,18 +4,61 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/willardcsoriano/oui/internal/hooks"
 	"github.com/willardcsoriano/oui/internal/providers"
+	"github.com/willardcsoriano/oui/internal/session"
 	"github.com/willardcsoriano/oui/internal/tools"
 )
 
+// providerIdentity maps provider names to how the model should identify itself.
+var providerIdentity = map[string]string{
+	"anthropic":  "Claude, made by Anthropic",
+	"openai":     "an OpenAI model",
+	"deepseek":   "DeepSeek, made by DeepSeek",
+	"gemini":     "Gemini, made by Google",
+	"groq":       "an AI model hosted on Groq",
+	"mistral":    "a Mistral AI model",
+	"cohere":     "Command, made by Cohere",
+	"xai":        "Grok, made by xAI",
+	"together":   "an AI model hosted on Together AI",
+	"fireworks":  "an AI model hosted on Fireworks AI",
+	"perplexity": "Perplexity AI",
+	"ollama":     "a locally-hosted model via Ollama",
+}
+
+// systemPrompt builds the effective system prompt: a fixed context block
+// (cwd, identity, tool descriptions) followed by any user-configured prompt.
+func systemPrompt() string {
+	cwd, _ := os.Getwd()
+	provider := session.ActiveProvider()
+
+	var sb strings.Builder
+	sb.WriteString("You are a helpful AI coding assistant. ")
+	if identity, ok := providerIdentity[provider]; ok {
+		sb.WriteString("Your identity: you are " + identity + ". ")
+		sb.WriteString("If asked who you are, say so clearly and do not claim to be a different AI. ")
+	}
+	sb.WriteString("You have access to tools: read_file (read any file), write_file (create/overwrite a file), ")
+	sb.WriteString("bash (run shell commands), web_search (search the web via DuckDuckGo), and fetch_url (fetch a URL and return its text). ")
+	sb.WriteString("Use your tools proactively — explore the codebase, run commands, and search the web rather than guessing.\n\n")
+	sb.WriteString("Working directory: " + cwd)
+	if custom := session.SystemPrompt(); custom != "" {
+		sb.WriteString("\n\n" + custom)
+	}
+	return sb.String()
+}
+
 // Run executes the agentic loop for a single user prompt.
-// It streams model output to w, executes tool calls in parallel goroutines,
-// and continues until the model produces no further tool calls.
+// All output — streamed text and tool results — is written to w in real time.
 func Run(ctx context.Context, prompt string, p providers.Provider, hooksCfg hooks.Config, w io.Writer) error {
-	msgs := []providers.Message{{Role: "user", Content: prompt}}
+	msgs := []providers.Message{
+		{Role: "system", Content: systemPrompt()},
+		{Role: "user", Content: prompt},
+	}
 
 	for {
 		result, err := p.Stream(ctx, msgs, tools.Schemas, w)

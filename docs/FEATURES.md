@@ -63,6 +63,7 @@ All commands are typed at the REPL prompt as `/command`.
 ```toml
 active_provider = "anthropic"
 active_model = ""          # empty = use provider's default_model
+system_prompt = ""         # optional; appended after the built-in system prompt
 
 [providers.anthropic]
 api_key = "sk-ant-..."
@@ -76,6 +77,10 @@ default_model = "gpt-4o"
 base_url = "http://localhost:11434/v1"
 default_model = "llama3.2"
 ```
+
+### System prompt
+
+Every agent turn starts with a built-in system prompt: the tools the model can call, the current working directory, and an identity sentence for the active provider (so, for example, a DeepSeek model does not claim to be Claude). Anything set in `system_prompt` is appended after that block. Anthropic receives it as the top-level `system` field; OpenAI-compatible providers receive it as a `system` role message.
 
 ### Environment variables
 

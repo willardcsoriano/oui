@@ -26,6 +26,7 @@ type anthropicProvider struct {
 type anthropicRequest struct {
 	Model     string          `json:"model"`
 	MaxTokens int             `json:"max_tokens"`
+	System    string          `json:"system,omitempty"` // extracted from role:system messages
 	Messages  []anthropicMsg  `json:"messages"`
 	Tools     []anthropicTool `json:"tools,omitempty"`
 	Stream    bool            `json:"stream"`
@@ -82,6 +83,7 @@ func (p *anthropicProvider) Stream(ctx context.Context, messages []Message, tool
 	req := anthropicRequest{
 		Model:     p.model,
 		MaxTokens: anthropicMaxTokens,
+		System:    extractSystemMsg(messages),
 		Messages:  toAnthropicMessages(messages),
 		Tools:     toAnthropicTools(tools),
 		Stream:    true,
@@ -224,6 +226,17 @@ func parseAnthropicSSE(r io.Reader, w io.Writer) (TurnResult, error) {
 }
 
 // ── Format converters ─────────────────────────────────────────────────────────
+
+// extractSystemMsg returns the content of the first system-role message.
+// Anthropic uses a top-level "system" field rather than a messages entry.
+func extractSystemMsg(msgs []Message) string {
+	for _, m := range msgs {
+		if m.Role == "system" {
+			return m.Content
+		}
+	}
+	return ""
+}
 
 func toAnthropicMessages(msgs []Message) []anthropicMsg {
 	var result []anthropicMsg
