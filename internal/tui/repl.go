@@ -157,8 +157,16 @@ func (m replModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Plain Enter = submit. Alt+Enter = newline (fallback for terminals
-		// that don't support modifyOtherKeys/Kitty).
+		// Alt+Enter = newline (fallback for terminals that don't support
+		// modifyOtherKeys or Kitty protocol).
+		if msg.Type == tea.KeyEnter && msg.Alt {
+			var cmd tea.Cmd
+			m.input, cmd = m.input.Update(tea.KeyMsg{Type: tea.KeyEnter})
+			m.growInputHeight()
+			return m, cmd
+		}
+
+		// Plain Enter = submit.
 		if msg.Type == tea.KeyEnter && !msg.Alt {
 			text := strings.TrimSpace(m.input.Value())
 			m.input.Reset()
@@ -285,7 +293,8 @@ func (m replModel) execCommand(text string) tea.Cmd {
 //  3. Restore the mode in Close(), which BubbleTea calls on exit, without
 //     actually closing os.Stdin (that would break the parent shell).
 var (
-	seqModifyOtherKeys = []byte("\x1b[27;2;13~")
+	seqModifyOtherKeys = []byte("\x1b[27;2;13~") // XTerm modifyOtherKeys level 2
+	seqKittyShiftEnter = []byte("\x1b[13;2u")    // Kitty keyboard protocol
 	seqSubstitute      = []byte{0x1c}
 )
 
@@ -326,6 +335,7 @@ func (r *shiftEnterReader) Read(p []byte) (int, error) {
 	}
 	data := tmp[:n]
 	data = bytes.ReplaceAll(data, seqModifyOtherKeys, seqSubstitute)
+	data = bytes.ReplaceAll(data, seqKittyShiftEnter, seqSubstitute)
 	n2 := copy(p, data)
 	if n2 < len(data) {
 		r.buf = append(r.buf[:0], data[n2:]...)
