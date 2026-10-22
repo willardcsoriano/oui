@@ -1,6 +1,6 @@
 ## Overview
 
-This document is the authoritative reference for what `oui` actually does — concrete feature behavior, command syntax, configuration interface, and behavioral guarantees. Every entry here is shipped and working in the Go implementation. Design rationale and philosophy live in `docs/VISION.md`; this file answers "what does it do and how do I use it?" Features are organized by area: the agent loop and auto-mode behavior, the built-in command suite, provider and model configuration, the hooks system, and the parallelism model. Configuration is via `~/.oui/config.toml` (auto-created on first run) with environment variable fallback for all API keys. The roadmap for planned work lives in `docs/ROADMAP.md`; the current implementation state is in `docs/STATE.md`.
+This document is the authoritative reference for what `oui` actually does — concrete feature behavior, command syntax, configuration interface, and behavioral guarantees. Every entry here is shipped and working in the Go implementation. Design rationale and philosophy live in `docs/VISION.md`; this file answers "what does it do and how do I use it?" Features are organized by area: the agent loop and auto-mode behavior, the built-in command suite, provider and model configuration, the hooks system, and the parallelism model. Configuration is via `~/.oui/config.toml` (auto-created on first run) with environment variable fallback for all API keys. The command reference is in `docs/COMMANDS.md`; the current implementation state is in `docs/STATE.md`.
 
 ---
 
