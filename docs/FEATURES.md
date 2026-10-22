@@ -1,6 +1,6 @@
 ## Overview
 
-This document is the authoritative reference for what `oui` actually does — concrete feature behavior, command syntax, configuration interface, and behavioral guarantees. Every entry here is shipped and working in the Go implementation. Design rationale and philosophy live in `docs/VISION.md`; this file answers "what does it do and how do I use it?" Features are organized by area: the agent loop and auto-mode behavior, the built-in command suite, provider and model configuration, the hooks system, and the parallelism model. Configuration is via `~/.oui/config.toml` (auto-created on first run) with environment variable fallback for all API keys. The roadmap for planned work lives in `docs/ROADMAP.md`; the current implementation state is in `docs/STATE.md`.
+This document is the authoritative reference for what `oui` actually does — concrete feature behavior, command syntax, configuration interface, and behavioral guarantees. Every entry here is shipped and working in the Go implementation. Design rationale and philosophy live in `docs/VISION.md`; this file answers "what does it do and how do I use it?" Features are organized by area: the agent loop and auto-mode behavior, the built-in command suite, provider and model configuration, the hooks system, and the parallelism model. Configuration is via `~/.oui/config.toml` (auto-created on first run) with environment variable fallback for all API keys. The command reference is in `docs/COMMANDS.md`; the current implementation state is in `docs/STATE.md`.
 
 ---
 
@@ -37,20 +37,7 @@ Everything else runs without asking. The deny list is a floor, not a ceiling —
 
 ## Built-in Command Suite
 
-All commands are typed at the REPL prompt as `/command`.
-
-| Command | What it does |
-|---|---|
-| `/commit` | Groups unstaged changes by concern (directory heuristic), stages and commits each group with a generated Conventional Commits message |
-| `/pr` | Pushes the current branch and opens a PR via `gh pr create --fill` |
-| `/merge` | Lists open PRs and enables auto-merge (squash) on each; skips drafts |
-| `/wrap` | Writes `HANDOFF.md` with branch, recent commits, diff stat, working tree status, and template sections for decisions/next-steps/blockers |
-| `/unwrap` | Reads and renders `HANDOFF.md` via Rich Markdown for cold session resumption |
-| `/bye` | Runs `/wrap` then exits the REPL |
-| `/privacy` | Scans git-tracked files for AI attribution patterns (`Co-Authored-By`, "Generated with", etc.) and reports file + line number |
-| `/gitignore` | Detects the project stack (Python, Node, Go, Rust, Java, Ruby, .NET) from files present and merges appropriate entries into `.gitignore` idempotently |
-| `/provider [name]` | Prints the active provider when called with no arg; switches to `name` and resets the model to its configured default when an arg is provided |
-| `/model [name]` | Prints the active model when called with no arg; switches to `name` within the current provider when an arg is provided |
+oui ships with a full command suite accessible via `/command` at the REPL prompt. See [`COMMANDS.md`](COMMANDS.md) for the complete reference.
 
 ---
 

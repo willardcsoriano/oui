@@ -1,6 +1,6 @@
 ## Overview
 
-This file is the single source of truth for where `oui` is right now — what has landed, what is in flight, what is next, and any decisions or blockers worth remembering. It is updated at the end of each work session or whenever a phase boundary is crossed. The roadmap in `docs/ROADMAP.md` defines the full plan; this file tracks execution against it. If this file and the roadmap disagree, this file reflects reality and the roadmap reflects intent.
+This file is the single source of truth for where `oui` is right now — what has landed, what is in flight, what is next, and any decisions or blockers worth remembering. It is updated at the end of each work session or whenever a phase boundary is crossed. The phased roadmap (Phases 0–6) is complete, and its history is recorded below.
 
 ---
 
